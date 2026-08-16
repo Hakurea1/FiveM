@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ตัวติดตามรอบฟาร์ม</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Quicksand', sans-serif;
+    background: #EDE3D3;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(216,167,177,0.25), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(168,185,159,0.25), transparent 45%);
+    color: #4A3F35;
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  .layout { display: grid; grid-template-columns: 1fr 240px; gap: 24px; align-items: start; }
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .sidebar {
+    background: #FBF6EC; border: 1.5px solid #E4D8C3; border-radius: 16px;
+    padding: 16px; position: sticky; top: 16px;
+  }
+  .sidebar h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+    color: #A0917D; margin: 0 0 12px;
+  }
+  .inv-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid #EFE7D8;
+  }
+  .inv-row:last-child { border-bottom: none; }
+  .inv-name { font-size: 13px; color: #6B5D4F; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .inv-qty { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: #4A3F35; }
+  .inv-total {
+    margin-top: 10px; padding-top: 10px; border-top: 1.5px dashed #D9CBB4;
+    display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #5E7A4E;
+  }
+
+  h1 {
+    font-weight: 700;
+    font-size: 28px;
+    margin: 0 0 4px;
+    color: #4A3F35;
+  }
+  .sub { color: #8A7A68; font-size: 13px; margin: 0 0 20px; line-height: 1.5; }
+
+  .toggle-row {
+    display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
+  }
+  .toggle-btn {
+    background: #FBF6EC; border: 1.5px solid #D9CBB4; color: #7A6C5A;
+    padding: 9px 16px; border-radius: 14px; font-size: 13px; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+    box-shadow: 0 2px 0 rgba(74,63,53,0.08);
+  }
+  .toggle-btn.active {
+    background: #D8A7B1; border-color: #D8A7B1; color: #4A2530;
+  }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 22px;
+  }
+  .stat-card {
+    background: #FBF6EC; border-radius: 16px; padding: 14px 16px;
+    border: 1.5px solid #E4D8C3;
+    box-shadow: 0 2px 0 rgba(74,63,53,0.06);
+  }
+  .stat-label { font-size: 11px; color: #A0917D; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600; }
+  .stat-value { font-family: 'Space Mono', monospace; font-size: 19px; font-weight: 700; color: #4A3F35; }
+  .stat-value.rose { color: #B4677A; }
+  .stat-value.sage { color: #5E7A4E; }
+
+  .bar-block { margin-bottom: 14px; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 12px; color: #6B5D4F; margin-bottom: 5px; font-weight: 600; }
+  .bar-label .val { font-family: 'Space Mono', monospace; color: #A0917D; font-weight: 400; }
+  .bar-track { background: #E4D8C3; border-radius: 8px; height: 11px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 8px; transition: width 0.3s; }
+  .bar-fill.rose { background: #D8A7B1; }
+  .bar-fill.sage { background: #A8B99F; }
+  .bar-fill.mustard { background: #E3B23C; }
+  .bar-fill.full { background: #C97B62; }
+
+  .section-title {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+    color: #A0917D; margin: 26px 0 12px; border-bottom: 1.5px dashed #D9CBB4; padding-bottom: 8px;
+  }
+
+  .round-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 8px;
+  }
+  .round-cell {
+    position: relative;
+    background: #FBF6EC; border: 1.5px solid #E4D8C3; border-radius: 12px;
+    padding: 8px 4px; text-align: center; cursor: pointer; user-select: none;
+    transition: all 0.15s;
+  }
+  .round-cell:hover { border-color: #D8A7B1; }
+  .round-cell.done { background: #DCE5D3; border-color: #A8B99F; }
+  .round-cell.mushroom-round { border-color: #E3B23C; border-style: dashed; }
+  .round-cell.mushroom-round.done { border-style: solid; }
+  .mushroom-badge {
+    position: absolute; top: -8px; right: -6px; font-size: 14px;
+    background: #FBF6EC; border-radius: 50%; line-height: 1;
+  }
+  .round-num { font-size: 11px; color: #A0917D; margin-bottom: 3px; font-weight: 600; }
+  .round-cell.done .round-num { color: #5E7A4E; }
+  .round-check { font-size: 15px; color: #D9CBB4; }
+  .round-cell.done .round-check { color: #5E7A4E; }
+  .legend-note { font-size: 11px; color: #A0917D; margin-top: 8px; }
+
+  .add-btn {
+    display: block; margin: 14px auto 0; background: transparent; border: 1.5px dashed #D9CBB4;
+    color: #A0917D; padding: 8px 20px; border-radius: 12px; cursor: pointer; font-size: 13px;
+    font-family: inherit; font-weight: 600;
+  }
+  .add-btn:hover { border-color: #D8A7B1; color: #B4677A; }
+
+  .mushroom-row { display: flex; align-items: center; gap: 12px; background: #FBF6EC; border: 1.5px solid #E4D8C3; border-radius: 16px; padding: 12px 16px; }
+  .step-btn {
+    width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid #D9CBB4; background: #FBF6EC;
+    color: #6B5D4F; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .step-btn:hover { border-color: #D8A7B1; color: #B4677A; }
+  .mushroom-count { font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700; min-width: 60px; text-align: center; }
+  .mushroom-cap { font-size: 12px; color: #A0917D; margin-left: auto; }
+
+  .price-row { display: flex; align-items: center; gap: 8px; background: #FBF6EC; border: 1.5px solid #E4D8C3; border-radius: 16px; padding: 10px 16px; margin-bottom: 8px; }
+  .price-label { font-size: 13px; font-weight: 600; color: #6B5D4F; min-width: 100px; }
+  .price-value { font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700; min-width: 44px; text-align: center; margin: 0 4px; }
+
+  .expense-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+  .expense-input {
+    background: #FBF6EC; border: 1.5px solid #E4D8C3; border-radius: 10px; padding: 8px 10px;
+    font-family: 'Space Mono', monospace; font-size: 13px; color: #4A3F35; width: 100px;
+  }
+  .expense-btn {
+    background: #E3B23C; border: none; color: #4A3315; padding: 8px 14px; border-radius: 10px;
+    font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .expense-btn.repair { background: #C97B62; color: #3D1E13; }
+  .expense-btn:hover { filter: brightness(1.05); }
+  .expense-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .expense-chip {
+    background: #F3E9D8; border: 1px solid #E4D8C3; border-radius: 20px; padding: 4px 10px;
+    font-size: 11px; color: #6B5D4F; display: flex; align-items: center; gap: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+  .expense-chip button {
+    border: none; background: none; color: #B4677A; cursor: pointer; font-size: 13px; font-weight: 700; padding: 0;
+  }
+
+  .actions { display: flex; gap: 8px; margin-top: 26px; }
+  .reset-btn {
+    background: transparent; border: 1.5px solid #D9A0A0; color: #B4677A;
+    padding: 9px 16px; border-radius: 12px; font-size: 12px; cursor: pointer; font-family: inherit; font-weight: 600;
+  }
+  .reset-btn:hover { background: #F5E4E4; }
+  .status-msg { font-size: 11px; color: #A0917D; margin-top: 8px; min-height: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🌾 ตัวติดตามรอบฟาร์ม</h1>
+  <p class="sub">1 รอบ = จิ้งจอก 5 ตัว + แอปเปิล 6 ต้น &middot; ผลผลิต 24 แอปเปิล + 20 ขนจิ้งจอก &middot; 68 กก./รอบ &middot; ต้นทุน 3,140 บาท/รอบ &middot; ~12 นาที &middot; รอบเก็บเห็ด (ทุกๆ 2 รอบ) จะไม่ได้ขนจิ้งจอกในรอบนั้น &middot; กำไรคำนวณจากราคาที่ตั้งไว้ด้านล่าง</p>
+
+  <div class="layout">
+  <div class="main">
+
+  <div class="toggle-row">
+    <button class="toggle-btn" id="btn-rent" onclick="setCarMode('rent')">รถเช่า 400 โล (30,000)</button>
+    <button class="toggle-btn" id="btn-norent" onclick="setCarMode('norent')">รถไม่เช่า 200 โล</button>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">รอบที่ทำแล้ว</div>
+      <div class="stat-value rose" id="stat-rounds">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">น้ำหนักสะสม</div>
+      <div class="stat-value" id="stat-weight">0 กก.</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ต้นทุนรวม (รอบ+ค่าใช้จ่าย)</div>
+      <div class="stat-value" id="stat-cost">0 บาท</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">กำไรสุทธิ</div>
+      <div class="stat-value sage" id="stat-profit">0 บาท</div>
+    </div>
+  </div>
+
+  <div class="section-title">ตั้งราคาขาย (ต่อชิ้น)</div>
+  <div class="price-row">
+    <span class="price-label">🍎 แอปเปิล</span>
+    <button class="step-btn" onclick="stepPrice('apple', -5)">-5</button>
+    <button class="step-btn" onclick="stepPrice('apple', -1)">-1</button>
+    <div class="price-value" id="apple-price-val">0</div>
+    <button class="step-btn" onclick="stepPrice('apple', 1)">+1</button>
+    <button class="step-btn" onclick="stepPrice('apple', 5)">+5</button>
+  </div>
+  <div class="price-row">
+    <span class="price-label">🦊 ขนจิ้งจอก</span>
+    <button class="step-btn" onclick="stepPrice('fox', -5)">-5</button>
+    <button class="step-btn" onclick="stepPrice('fox', -1)">-1</button>
+    <div class="price-value" id="fox-price-val">0</div>
+    <button class="step-btn" onclick="stepPrice('fox', 1)">+1</button>
+    <button class="step-btn" onclick="stepPrice('fox', 5)">+5</button>
+  </div>
+
+  <div class="section-title">สถานะความจุ</div>
+
+  <div class="bar-block">
+    <div class="bar-label"><span>รถ <span id="car-mode-label"></span></span><span class="val" id="car-bar-text">0 / 0 กก.</span></div>
+    <div class="bar-track"><div class="bar-fill rose" id="car-bar" style="width:0%"></div></div>
+  </div>
+  <div class="bar-block">
+    <div class="bar-label"><span>แอปเปิลในตัว (หลังรถเต็ม)</span><span class="val" id="apple-bar-text">0 / 50</span></div>
+    <div class="bar-track"><div class="bar-fill sage" id="apple-bar" style="width:0%"></div></div>
+  </div>
+  <div class="bar-block">
+    <div class="bar-label"><span>ขนจิ้งจอกในตัว (หลังรถเต็ม)</span><span class="val" id="fox-bar-text">0 / 50</span></div>
+    <div class="bar-track"><div class="bar-fill mustard" id="fox-bar" style="width:0%"></div></div>
+  </div>
+  <div class="bar-block" id="breakeven-block" style="display:none">
+    <div class="bar-label"><span>คุ้มค่าเช่ารถ (30,000 บาท)</span><span class="val" id="breakeven-text">0%</span></div>
+    <div class="bar-track"><div class="bar-fill rose" id="breakeven-bar" style="width:0%"></div></div>
+  </div>
+
+  <div class="section-title">รอบเก็บเห็ด (เก็บด้วยมือ แยกจากรถ)</div>
+  <div class="mushroom-row">
+    <button class="step-btn" onclick="stepMushroom(-5)">-5</button>
+    <button class="step-btn" onclick="stepMushroom(-1)">-1</button>
+    <div class="mushroom-count" id="mushroom-count">0</div>
+    <button class="step-btn" onclick="stepMushroom(1)">+1</button>
+    <button class="step-btn" onclick="stepMushroom(5)">+5</button>
+    <span class="mushroom-cap" id="mushroom-cap">0 อัน เก็บแล้ว</span>
+  </div>
+  <div class="expense-row" style="margin-top:10px">
+    <span style="font-size:13px; color:#6B5D4F; font-weight:600;">ราคาเห็ด</span>
+    <input type="number" class="expense-input" id="mushroom-price" placeholder="บาท/อัน" min="0" onchange="setMushroomPrice(this.value)">
+    <span style="font-size:12px; color:#A0917D;" id="mushroom-revenue">= 0 บาท</span>
+  </div>
+
+  <div class="mushroom-row" style="margin-top:10px">
+    <span class="price-label" style="min-width:90px">🟣 เห็ดม่วง</span>
+    <button class="step-btn" onclick="stepBonus('purple', -1)">-1</button>
+    <div class="mushroom-count" id="purple-count">0</div>
+    <button class="step-btn" onclick="stepBonus('purple', 1)">+1</button>
+    <span class="mushroom-cap" id="purple-revenue">= 0 บาท</span>
+  </div>
+  <div class="mushroom-row" style="margin-top:10px">
+    <span class="price-label" style="min-width:90px">🟡 เห็ดทอง</span>
+    <button class="step-btn" onclick="stepBonus('gold', -1)">-1</button>
+    <div class="mushroom-count" id="gold-count">0</div>
+    <button class="step-btn" onclick="stepBonus('gold', 1)">+1</button>
+    <span class="mushroom-cap" id="gold-revenue">= 0 บาท</span>
+  </div>
+
+  <div class="section-title">รอบฟาร์ม (กดเช็คเมื่อฟามเสร็จ)</div>
+  <div class="round-grid" id="round-grid"></div>
+  <div class="legend-note">🍄 = รอบเก็บเห็ด (ทุกๆ 2 รอบ) — ไม่ได้ขนจิ้งจอกในรอบนี้ (ยังได้แอปเปิลปกติ)</div>
+  <button class="add-btn" onclick="addRounds(1)">+ เพิ่มอีก 1 รอบ</button>
+
+  <div class="section-title">ค่าใช้จ่ายเพิ่มเติม</div>
+  <div class="expense-row">
+    <input type="number" class="expense-input" id="fuel-amount" placeholder="บาท" min="0">
+    <button class="expense-btn" onclick="addExpense('fuel')">⛽ เติมน้ำมัน</button>
+  </div>
+  <div class="expense-row">
+    <input type="number" class="expense-input" id="repair-amount" placeholder="บาท" min="0">
+    <button class="expense-btn repair" onclick="addExpense('repair')">🔧 ค่าซ่อม</button>
+  </div>
+  <div class="expense-list" id="expense-list"></div>
+
+  <div class="actions">
+    <button class="reset-btn" onclick="resetAll()">รีเซ็ตทั้งหมด</button>
+  </div>
+  <div class="status-msg" id="status-msg"></div>
+
+  </div>
+
+  <div class="sidebar">
+    <h2>คลังของ</h2>
+    <div class="inv-row"><span class="inv-name">🍎 แอปเปิล</span><span class="inv-qty" id="inv-apple">0</span></div>
+    <div class="inv-row"><span class="inv-name">🦊 ขนจิ้งจอก</span><span class="inv-qty" id="inv-fox">0</span></div>
+    <div class="inv-row"><span class="inv-name">🍄 เห็ด</span><span class="inv-qty" id="inv-mushroom">0</span></div>
+    <div class="inv-row"><span class="inv-name">🟣 เห็ดม่วง</span><span class="inv-qty" id="inv-purple">0</span></div>
+    <div class="inv-row"><span class="inv-name">🟡 เห็ดทอง</span><span class="inv-qty" id="inv-gold">0</span></div>
+    <div class="inv-total"><span>มูลค่ารวม</span><span id="inv-total-value">0 บาท</span></div>
+  </div>
+
+  </div>
+</div>
+
+<script>
+const PER_ROUND = {
+  cost: 3140,
+  profit: 5760,
+  weight: 68,
+  apple: 24,
+  fox: 20
+};
+const BODY_CAP = { apple: 50, fox: 50, mushroom: 30 };
+const CAR_CAP = { rent: 400, norent: 200 };
+const RENTAL_COST = 30000;
+
+const BONUS_PRICE = { purple: 480, gold: 900 };
+
+let state = { rounds: Array(10).fill(false), carMode: 'rent', mushroom: 0, mushroomPrice: 277, applePrice: 202, foxPrice: 206, purple: 0, gold: 0, expenses: [] };
+let loaded = false;
+let expenseId = 0;
+
+function isMushroomRound(i) {
+  return (i + 1) % 2 === 0;
+}
+
+function statusMsg(text) {
+  document.getElementById('status-msg').textContent = text;
+  setTimeout(() => { document.getElementById('status-msg').textContent = ''; }, 1500);
+}
+
+async function loadState() {
+  try {
+    const result = await window.storage.get('fivem-tracker-state', false);
+    if (result && result.value) {
+      const parsed = JSON.parse(result.value);
+      if (parsed.rounds) state.rounds = parsed.rounds;
+      if (parsed.carMode) state.carMode = parsed.carMode;
+      if (typeof parsed.mushroom === 'number') state.mushroom = parsed.mushroom;
+      if (typeof parsed.mushroomPrice === 'number') state.mushroomPrice = parsed.mushroomPrice;
+      if (typeof parsed.applePrice === 'number') state.applePrice = parsed.applePrice;
+      if (typeof parsed.foxPrice === 'number') state.foxPrice = parsed.foxPrice;
+      if (typeof parsed.purple === 'number') state.purple = parsed.purple;
+      if (typeof parsed.gold === 'number') state.gold = parsed.gold;
+      if (parsed.expenses) state.expenses = parsed.expenses;
+      if (parsed.expenses && parsed.expenses.length) {
+        expenseId = Math.max(...parsed.expenses.map(e => e.id)) + 1;
+      }
+    }
+  } catch (e) {
+  }
+  loaded = true;
+  render();
+}
+
+async function saveState() {
+  try {
+    await window.storage.set('fivem-tracker-state', JSON.stringify(state), false);
+  } catch (e) {
+    statusMsg('บันทึกไม่สำเร็จ ลองใหม่');
+  }
+}
+
+function setCarMode(mode) {
+  state.carMode = mode;
+  saveState();
+  render();
+}
+
+function toggleRound(i) {
+  state.rounds[i] = !state.rounds[i];
+  saveState();
+  render();
+}
+
+function addRounds(n) {
+  for (let i = 0; i < n; i++) state.rounds.push(false);
+  saveState();
+  render();
+}
+
+function stepMushroom(delta) {
+  state.mushroom = Math.max(0, state.mushroom + delta);
+  saveState();
+  render();
+}
+
+function setMushroomPrice(val) {
+  state.mushroomPrice = Math.max(0, Number(val) || 0);
+  saveState();
+  render();
+}
+
+function stepPrice(type, delta) {
+  const key = type === 'apple' ? 'applePrice' : 'foxPrice';
+  state[key] = Math.max(0, state[key] + delta);
+  saveState();
+  render();
+}
+
+function stepBonus(type, delta) {
+  state[type] = Math.max(0, state[type] + delta);
+  saveState();
+  render();
+}
+
+function addExpense(type) {
+  const inputEl = document.getElementById(type === 'fuel' ? 'fuel-amount' : 'repair-amount');
+  const amount = Number(inputEl.value);
+  if (!amount || amount <= 0) {
+    statusMsg('ใส่จำนวนเงินก่อนนะ');
+    return;
+  }
+  state.expenses.push({ id: expenseId++, type, amount });
+  inputEl.value = '';
+  saveState();
+  render();
+}
+
+function removeExpense(id) {
+  state.expenses = state.expenses.filter(e => e.id !== id);
+  saveState();
+  render();
+}
+
+function resetAll() {
+  state.rounds = state.rounds.map(() => false);
+  state.mushroom = 0;
+  state.purple = 0;
+  state.gold = 0;
+  state.expenses = [];
+  saveState();
+  render();
+  statusMsg('รีเซ็ตแล้ว');
+}
+
+function render() {
+  if (!loaded) return;
+
+  document.getElementById('btn-rent').classList.toggle('active', state.carMode === 'rent');
+  document.getElementById('btn-norent').classList.toggle('active', state.carMode === 'norent');
+
+  const done = state.rounds.filter(Boolean).length;
+  // รอบเก็บเห็ดที่ทำเสร็จแล้ว (ทุกๆ 2 รอบ) จะไม่ได้ขนจิ้งจอกในรอบนั้น
+  const mushroomRoundsDone = state.rounds.filter((v, i) => v && isMushroomRound(i)).length;
+  const foxRoundsDone = done - mushroomRoundsDone;
+
+  const weight = done * PER_ROUND.weight;
+  const roundCost = done * PER_ROUND.cost;
+  const appleTotal = done * PER_ROUND.apple;
+  const foxTotal = foxRoundsDone * PER_ROUND.fox;
+  const appleRevenue = appleTotal * state.applePrice;
+  const foxRevenue = foxTotal * state.foxPrice;
+  const expenseTotal = state.expenses.reduce((sum, e) => sum + e.amount, 0);
+  const mushroomRevenue = state.mushroom * state.mushroomPrice;
+  const purpleRevenue = state.purple * BONUS_PRICE.purple;
+  const goldRevenue = state.gold * BONUS_PRICE.gold;
+  const totalCost = roundCost + expenseTotal;
+  const netProfit = appleRevenue + foxRevenue + mushroomRevenue + purpleRevenue + goldRevenue - totalCost;
+
+  document.getElementById('stat-rounds').textContent = done;
+  document.getElementById('stat-weight').textContent = weight.toLocaleString() + ' กก.';
+  document.getElementById('stat-cost').textContent = totalCost.toLocaleString() + ' บาท';
+  document.getElementById('stat-profit').textContent = netProfit.toLocaleString() + ' บาท';
+
+  const carCap = CAR_CAP[state.carMode];
+  const carPct = Math.min(100, Math.round((weight / carCap) * 100));
+  document.getElementById('car-mode-label').textContent = state.carMode === 'rent' ? '(เช่า 400 โล)' : '(ไม่เช่า 200 โล)';
+  document.getElementById('car-bar-text').textContent = `${Math.min(weight, carCap).toLocaleString()} / ${carCap.toLocaleString()} กก.`;
+  const carBar = document.getElementById('car-bar');
+  carBar.style.width = carPct + '%';
+  carBar.className = 'bar-fill ' + (carPct >= 100 ? 'full' : 'rose');
+
+  const overflowWeight = Math.max(0, weight - carCap);
+  const overflowRounds = overflowWeight / PER_ROUND.weight;
+  const appleInBody = Math.min(BODY_CAP.apple, Math.round(overflowRounds * PER_ROUND.apple));
+  // สัดส่วนขนจิ้งจอกที่ยังเหลือเทียบกับแอปเปิลทั้งหมด ใช้ปรับปริมาณขนจิ้งจอกที่ทะลักออกมาให้ตรงกับที่เก็บได้จริง
+  const foxRatio = appleTotal > 0 ? foxTotal / appleTotal : (foxRoundsDone > 0 ? 1 : 0);
+  const foxInBody = Math.min(BODY_CAP.fox, Math.round(appleInBody * foxRatio));
+
+  const applePct = Math.min(100, Math.round((appleInBody / BODY_CAP.apple) * 100));
+  document.getElementById('apple-bar-text').textContent = `${appleInBody} / ${BODY_CAP.apple}`;
+  const appleBar = document.getElementById('apple-bar');
+  appleBar.style.width = applePct + '%';
+  appleBar.className = 'bar-fill ' + (applePct >= 100 ? 'full' : 'sage');
+
+  const foxPct = Math.min(100, Math.round((foxInBody / BODY_CAP.fox) * 100));
+  document.getElementById('fox-bar-text').textContent = `${foxInBody} / ${BODY_CAP.fox}`;
+  const foxBar = document.getElementById('fox-bar');
+  foxBar.style.width = foxPct + '%';
+  foxBar.className = 'bar-fill ' + (foxPct >= 100 ? 'full' : 'mustard');
+
+  const breakevenBlock = document.getElementById('breakeven-block');
+  if (state.carMode === 'rent') {
+    breakevenBlock.style.display = 'block';
+    const bePct = Math.min(100, Math.round((netProfit / RENTAL_COST) * 100));
+    document.getElementById('breakeven-text').textContent = bePct + '%';
+    const beBar = document.getElementById('breakeven-bar');
+    beBar.style.width = bePct + '%';
+    beBar.className = 'bar-fill ' + (bePct >= 100 ? 'full' : 'rose');
+  } else {
+    breakevenBlock.style.display = 'none';
+  }
+
+  document.getElementById('mushroom-count').textContent = state.mushroom;
+  document.getElementById('mushroom-cap').textContent = `${state.mushroom} อัน เก็บแล้ว`;
+  document.getElementById('mushroom-price').value = state.mushroomPrice || '';
+  document.getElementById('mushroom-revenue').textContent = `= ${mushroomRevenue.toLocaleString()} บาท`;
+  document.getElementById('apple-price-val').textContent = state.applePrice;
+  document.getElementById('fox-price-val').textContent = state.foxPrice;
+
+  document.getElementById('purple-count').textContent = state.purple;
+  document.getElementById('purple-revenue').textContent = `= ${purpleRevenue.toLocaleString()} บาท`;
+  document.getElementById('gold-count').textContent = state.gold;
+  document.getElementById('gold-revenue').textContent = `= ${goldRevenue.toLocaleString()} บาท`;
+
+  document.getElementById('inv-apple').textContent = appleTotal.toLocaleString();
+  document.getElementById('inv-fox').textContent = foxTotal.toLocaleString();
+  document.getElementById('inv-mushroom').textContent = state.mushroom.toLocaleString();
+  document.getElementById('inv-purple').textContent = state.purple.toLocaleString();
+  document.getElementById('inv-gold').textContent = state.gold.toLocaleString();
+  document.getElementById('inv-total-value').textContent =
+    (appleRevenue + foxRevenue + mushroomRevenue + purpleRevenue + goldRevenue).toLocaleString() + ' บาท';
+
+  const grid = document.getElementById('round-grid');
+  grid.innerHTML = '';
+  state.rounds.forEach((isDone, i) => {
+    const isMushroom = isMushroomRound(i);
+    const cell = document.createElement('div');
+    cell.className = 'round-cell' + (isDone ? ' done' : '') + (isMushroom ? ' mushroom-round' : '');
+    cell.onclick = () => toggleRound(i);
+    const badge = isMushroom ? '<div class="mushroom-badge">🍄</div>' : '';
+    cell.innerHTML = `${badge}<div class="round-num">รอบ ${i + 1}</div><div class="round-check">${isDone ? '\u2713' : '\u25CB'}</div>`;
+    grid.appendChild(cell);
+  });
+
+  const list = document.getElementById('expense-list');
+  list.innerHTML = '';
+  state.expenses.forEach(e => {
+    const chip = document.createElement('div');
+    chip.className = 'expense-chip';
+    const label = e.type === 'fuel' ? '⛽' : '🔧';
+    chip.innerHTML = `<span>${label} ${e.amount.toLocaleString()} บาท</span>`;
+    const btn = document.createElement('button');
+    btn.textContent = '×';
+    btn.onclick = () => removeExpense(e.id);
+    chip.appendChild(btn);
+    list.appendChild(chip);
+  });
+}
+
+loadState();
+</script>
+</body>
+</html>
